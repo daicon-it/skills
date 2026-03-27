@@ -6,6 +6,7 @@ description: >-
   detect high CPU/RAM, fix stuck processes, cron conflict detection, container health monitoring,
   machine unreachable detection, SSH/Tailscale connectivity checks
   DO NOT USE FOR: initial server setup (use devops-agent), application debugging, database admin
+install: global
 ---
 
 # Watchdog Agent
@@ -24,7 +25,7 @@ Automated monitoring and auto-healing for LXC containers and VPS.
 | High CPU load | load average > cores * threshold | Renice heavy processes |
 | Cron conflicts | Multiple heavy cron jobs running | Defer or kill newer |
 | Machine unreachable | SSH timeout, ping fail, Tailscale down | Diagnose → fix (restart tailscale/sshd/pct start) → email lccdaicon@gmail.com if physical action needed |
-| Skills drift | Missing/outdated skills vs daicon-it/skills repo | Report diff, suggest `push-to-all.sh --skills-only` |
+| Skills drift | Missing `install: global` skills vs daicon-it/skills repo | Report diff, suggest `push-to-all.sh --skills-only`. Only monitors skills with `install: global`, ignores `shared` and project/vendor skills |
 
 ## Usage
 

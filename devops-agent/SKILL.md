@@ -6,6 +6,7 @@ description: >-
   restart container, check logs, setup Docker, configure Tailscale, manage PostgreSQL, backup server,
   bootstrap machine, deploy service, fix firewall, setup monitoring, new machine setup, install Claude on server
   DO NOT USE FOR: application code development, database schema design, frontend work
+install: global
 ---
 
 # DevOps Agent

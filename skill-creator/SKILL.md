@@ -5,6 +5,7 @@ description: >-
   USE FOR: create agent, create skill, new agent, make a skill for, build agent,
   add skill, improve skill, update agent, I need an agent that, automate with agent
   DO NOT USE FOR: searching existing skills (use skills-db), running existing agents
+install: global
 argument-hint: [what the agent/skill should do]
 ---
 
@@ -99,6 +100,19 @@ curl -fsSL "https://raw.githubusercontent.com/daicon-it/infra/master/machine-boo
   | bash -s -- --skills-only --force
 ```
 
+## Skill Classification
+
+Every skill MUST have an `install:` field in frontmatter:
+
+| Type | `install:` | Meaning | Watchdog monitors? |
+|------|-----------|---------|-------------------|
+| **global** | `install: global` | Installed on ALL machines via bootstrap | Yes — drift detection |
+| **shared** | `install: shared` | In daicon-it/skills repo, installed manually per-project need | No |
+| **project** | (no field, lives in repo `.claude/`) | Part of a specific project repo | No |
+| **vendor** | (no field, comes from dependency) | Third-party (e.g. bmad-method) | No |
+
+**When creating a new skill, ask:** "Does every machine need this?" → `global`. "Only machines with specific projects?" → `shared`.
+
 ## SKILL.md Format
 
 ```yaml
@@ -108,6 +122,7 @@ description: >-
   What this skill does. One paragraph.
   USE FOR: comma-separated trigger phrases
   DO NOT USE FOR: what other skills handle (with cross-references)
+install: global|shared
 ---
 
 # Skill Title

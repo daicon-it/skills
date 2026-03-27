@@ -5,6 +5,7 @@ description: >-
   USE FOR: find skill, search skills, is there a skill for, existing skills, ready-made, reusable skill,
   how do I do X, find a tool for, check if exists
   DO NOT USE FOR: creating new skills from scratch (use skill-creator plugin)
+install: global
 argument-hint: [search query]
 ---
 
