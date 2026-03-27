@@ -1,0 +1,98 @@
+hip_hosting:
+  sid: "s%3A05671172-2de1-4d2d-a2b8-548a0b5a67e1.12ck9yPI5inxR0xo2Zr276BmVngMm7A%2BeJ7%2BKs6rsq4"
+
+thresholds:
+  disk_warn: 80
+  disk_crit: 90
+  ram_warn: 80
+  ram_crit: 90
+  swap_warn: 50
+  load_per_core_warn: 2.0
+  updates_warn: 50
+
+report:
+  output_dir: /root/devops-agent/reports
+
+machines:
+  - name: pmx
+    type: proxmox-host
+    ssh: "ssh root@100.93.132.32"
+    description: "Proxmox host (AMD Athlon X4 750K, 16GB)"
+    checks: [system, tailscale, apt]
+
+  - name: CT-101
+    type: local
+    description: "Management container (pmx-claude)"
+    checks: [system, tailscale, apt, cron]
+
+  - name: CT-231
+    type: lxc
+    vmid: 231
+    ssh_host: "100.93.132.32"
+    description: "PostgreSQL 16 + pgvector"
+    checks: [system, tailscale, apt, cron, postgresql]
+    postgresql:
+      host: 100.124.99.73
+      port: 5432
+      databases: [db_pulscen, db_kwork, db_telethon, skillsdb]
+
+  - name: CT-232
+    type: lxc
+    vmid: 232
+    ssh_host: "100.93.132.32"
+    description: "Pulscen parser"
+    checks: [system, tailscale, apt, cron, services]
+    services: [tailscale-exit-node.service]
+
+  - name: CT-233
+    type: lxc
+    vmid: 233
+    ssh_host: "100.93.132.32"
+    description: "Kwork parser"
+    checks: [system, tailscale, apt, cron]
+
+  - name: CT-234
+    type: lxc
+    vmid: 234
+    ssh_host: "100.93.132.32"
+    description: "Telethon bot"
+    checks: [system, tailscale, apt, cron, services]
+    services: [tailscale-exit-node.service, telegram-monitor.service]
+    projects:
+      - name: telegram-monitor
+        service: telegram-monitor.service
+        path: /root/telegram_monitor
+        description: "Telethon мониторинг чатов → PostgreSQL"
+
+  - name: hiplet-66136
+    type: vps
+    ssh: "ssh root@193.168.199.43"
+    description: "VPS enrichment worker"
+    checks: [system, tailscale, apt, cron, login_audit, cpu_remediate, services]
+    services: [skills-api.service]
+    projects:
+      - name: skills-api
+        service: skills-api.service
+        path: /root/skills-db
+        description: "Skills DB REST API (FastAPI, порт 8410)"
+      - name: enrichment-worker
+        path: /root/enrichment-worker
+        description: "Telegram message enrichment (embed + classify + ideas)"
+
+  - name: hiplet-32436
+    type: vps
+    ssh: "sshpass -p 'wjMu1oBvFasuV5' ssh -o StrictHostKeyChecking=no root@100.125.198.74"
+    description: "VPS exit node usa-100mbs"
+    checks: [system, tailscale, apt, login_audit]
+
+  - name: tes23
+    type: vps
+    ssh: "ssh tes@100.94.60.102"
+    description: "Linux PC tes23"
+    checks: [system, tailscale, apt]
+
+  - name: PC-001
+    type: vps
+    ssh: "ssh ss@100.105.50.119"
+    description: "Remote Linux PC"
+    checks: [system, tailscale, apt, login_audit]

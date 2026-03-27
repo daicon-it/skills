@@ -1,0 +1,81 @@
+# Watchdog Agent — мониторинг и авто-healing LXC контейнеров и VPS
+# Запуск: python3 /root/watchdog-agent/watchdog.py [--dry-run]
+
+ssh_host: "100.93.132.32"  # Proxmox host Tailscale IP
+
+# ── Пороги ──────────────────────────────────────────
+thresholds:
+  ram_warn: 75          # % — предупреждение
+  ram_crit: 85          # % — убить тяжёлые процессы
+  swap_warn: 50         # %
+  swap_crit: 80         # % — убить + очистить кэш
+  duplicate_procs: 5    # одинаковых процессов — алерт + kill
+  max_proc_age_min: 60  # процесс claude/node старше N мин — stale, kill
+  cpu_load_warn: 3.5    # load average 5min — предупреждение (monitor.sh threshold)
+  cpu_load_crit: 6.0    # load average 5min — критично
+  cron_conflict_cpu: 15  # % CPU — процесс считается "тяжёлым" для cron-конфликта
+
+# ── Паттерны процессов с лимитом времени ────────────
+# Процессы, которые не должны жить дольше max_age_min
+# Интерактивные сессии (pts/) исключаются автоматически
+stale_proc_patterns:
+  - pattern: "claude --print"
+    max_age_min: 30      # --print задача не должна висеть >30 мин
+  - pattern: "claude -p"
+    max_age_min: 30      # prompt-mode тоже
+  - pattern: "node /usr/local/bin/claude --print"
+    max_age_min: 30
+  - pattern: "node /root/.local/bin/claude --print"
+    max_age_min: 30
+  - pattern: "python3 analyzer.py"
+    max_age_min: 15      # analyzer не должен висеть >15 мин
+
+# ── Машины ──────────────────────────────────────────
+machines:
+  # LXC контейнеры (через pct exec)
+  - name: "CT-231"
+    type: lxc
+    vmid: 231
+    services: ["postgresql"]
+    protected_procs: ["postgres", "tailscaled", "sshd"]
+
+  - name: "CT-232"
+    type: lxc
+    vmid: 232
+    services: ["pulscen-suppliers", "pulscen-products", "tailscaled"]
+    protected_procs: ["python3 supervisor", "scrapy", "crawl_all", "tailscaled", "sshd", "redis"]
+
+  - name: "CT-233"
+    type: lxc
+    vmid: 233
+    services: ["kwork-celery-worker", "kwork-celery-beat", "redis", "tailscaled"]
+    protected_procs: ["celery", "redis", "tailscaled", "sshd"]
+
+  - name: "CT-234"
+    type: lxc
+    vmid: 234
+    services: ["telegram-monitor", "tailscaled"]
+    protected_procs: ["python3 monitor.py", "tailscaled", "sshd"]
+
+  # VPS (через SSH напрямую)
+  - name: "hiplet-66136"
+    type: vps
+    ssh: "ssh -o ConnectTimeout=5 root@193.168.199.43"
+    services: ["skills-api"]
+    protected_procs: ["tailscaled", "sshd", "skills-api", "uvicorn"]
+
+  - name: "hiplet-32436"
+    type: vps
+    ssh: "ssh -o ConnectTimeout=5 root@100.125.198.74"
+    services: []
+    protected_procs: ["tailscaled", "sshd", "3proxy", "nginx"]
+
+# ── Действия при нарушениях ─────────────────────────
+actions:
+  kill_on_ram_crit: true
+  drop_caches_on_swap_crit: true
+  kill_duplicate_procs: true
+  kill_stale_procs: true         # убивать зависшие claude/node процессы по возрасту
+  reboot_on_emergency: true      # только для LXC
+  reboot_swap_threshold: 95      # %
+  renice_on_cpu_crit: true       # renice тяжёлых процессов при высоком CPU load
